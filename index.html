@@ -1,0 +1,981 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Marées Belgique</title>
+  <style>
+    :root{
+      --bg:#f2f0ea;
+      --card:#ffffff;
+      --ink:#1b1f24;
+      --muted:#5b6775;
+      --line:#dde3ea;
+      --accent:#1f6feb;
+      --ok:#0a7a2f;
+      --warn:#b45309;
+      --bad:#b42318;
+      --shadow:0 8px 24px rgba(16,24,40,.08);
+      --radius:16px;
+      --font: ui-sans-serif, -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--font);
+      background:linear-gradient(180deg, var(--bg), #f7f6f2 50%, var(--bg));
+      color:var(--ink);
+    }
+    header{
+      position:sticky; top:0; z-index:10;
+      background:rgba(242,240,234,.88);
+      backdrop-filter: blur(8px);
+      border-bottom:1px solid var(--line);
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:16px 16px 28px}
+    .topbar{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    }
+    .brand h1{margin:0;font-size:20px;letter-spacing:.2px}
+    .brand .sub{margin-top:4px;font-size:13px;color:var(--muted)}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; border:1px solid var(--line); border-radius:999px;
+      background:rgba(255,255,255,.75);
+      font-size:12px; color:var(--muted);
+      white-space:nowrap;
+    }
+    main .grid{
+      display:grid; gap:14px; margin-top:14px;
+      grid-template-columns: 1.1fr .9fr;
+    }
+    @media (max-width: 920px){
+      main .grid{grid-template-columns:1fr}
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .card .hd h2{margin:0;font-size:16px}
+    .card .bd{padding:14px 16px}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input, select, button, textarea{
+      font:inherit;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end}
+    .row > .field{flex:1; min-width:210px}
+    .row > .field.small{flex:0 0 170px; min-width:170px}
+    .row > .field.tiny{flex:0 0 120px; min-width:120px}
+    input[type="text"], input[type="number"], input[type="date"], select, textarea{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fff;
+      outline:none;
+    }
+    textarea{min-height:70px; resize:vertical}
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(31,111,235,.55);
+      box-shadow: 0 0 0 4px rgba(31,111,235,.14);
+    }
+    button{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fff;
+      cursor:pointer;
+      transition:.15s transform ease, .15s box-shadow ease, .15s background ease;
+      user-select:none;
+    }
+    button.primary{
+      background:var(--accent);
+      border-color:var(--accent);
+      color:#fff;
+    }
+    button:active{transform:scale(.98)}
+    .btns{display:flex; gap:10px; flex-wrap:wrap}
+    .hint{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+    .status{
+      display:flex; gap:10px; flex-wrap:wrap;
+      font-size:12px; color:var(--muted);
+      margin-top:10px;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:7px;
+      padding:6px 10px; border-radius:999px; border:1px solid var(--line);
+      background:#fff;
+    }
+    .dot{width:9px;height:9px;border-radius:50%}
+    .dot.ok{background:var(--ok)}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+    .kpi{
+      display:grid; gap:10px;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      margin-top:12px;
+    }
+    @media (max-width: 540px){ .kpi{grid-template-columns:1fr} }
+    .k{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:14px;
+      padding:10px 12px;
+    }
+    .k .t{font-size:12px;color:var(--muted)}
+    .k .v{margin-top:4px;font-weight:700;font-size:14px}
+    .tablewrap{
+      max-height:420px; overflow:auto;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+    }
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    thead th{
+      position:sticky; top:0; z-index:2;
+      background:#f7f9fb;
+      border-bottom:1px solid var(--line);
+      padding:10px 10px;
+      text-align:left;
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    tbody td{
+      padding:10px 10px;
+      border-bottom:1px solid #f0f3f7;
+      vertical-align:top;
+    }
+    tbody tr:nth-child(even){background:#fbfcfe}
+    .type{
+      font-weight:700;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      display:inline-block;
+      font-size:12px;
+      background:#fff;
+    }
+    .type.high{color:#0b4a6f}
+    .type.low{color:#7a1d1d}
+    .mono{font-variant-numeric: tabular-nums}
+    canvas{width:100%; height:220px; display:block}
+    footer{
+      margin-top:18px;
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+      padding:18px 10px;
+    }
+    .mini{font-size:11px;color:var(--muted)}
+    .linkbtn{
+      text-decoration:underline;
+      background:none;
+      border:none;
+      padding:0;
+      color:var(--accent);
+      cursor:pointer;
+    }
+    .split{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:10px;
+    }
+    @media (max-width: 920px){ .split{grid-template-columns:1fr} }
+    .hr{height:1px;background:var(--line);margin:12px 0}
+    .warnbox{
+      border:1px solid rgba(180,83,9,.25);
+      background:rgba(180,83,9,.07);
+      color:#5b3b13;
+      padding:10px 12px;
+      border-radius:14px;
+      font-size:12px;
+      line-height:1.45;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <h1>🌊 Marées Belgique</h1>
+        <div class="sub">Table + graphique • Spots belges • API (option) • Mode démo</div>
+      </div>
+      <div class="pill">v1.0 • © Pierre Charlier 2026</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+
+    <!-- LEFT: controls + results -->
+    <section class="card">
+      <div class="hd">
+        <h2>Paramètres</h2>
+        <div class="mini" id="nowLabel">—</div>
+      </div>
+      <div class="bd">
+
+        <div class="row">
+          <div class="field">
+            <label for="spot">Spot (Belgique)</label>
+            <select id="spot"></select>
+            <div class="hint">
+              Astuce : tu peux aussi choisir “📍 Personnalisé” et entrer lat/lon.
+            </div>
+          </div>
+          <div class="field tiny">
+            <label for="days">Jours</label>
+            <select id="days">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="5">5</option>
+              <option value="7">7</option>
+            </select>
+          </div>
+          <div class="field small">
+            <label for="date0">Date de départ</label>
+            <input id="date0" type="date" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div class="field">
+            <label for="apiKey">Clé API (WorldTides) — optionnel</label>
+            <input id="apiKey" type="text" placeholder="Colle ta clé ici (sinon mode démo)" />
+            <div class="hint">
+              L’API WorldTides fournit des marées partout dans le monde via requêtes HTTP.  [oai_citation:2‡worldtides.info](https://www.worldtides.info/apidocs?utm_source=chatgpt.com)
+            </div>
+          </div>
+          <div class="field tiny">
+            <label for="mode">Mode</label>
+            <select id="mode">
+              <option value="auto" selected>Auto</option>
+              <option value="api">Forcer API</option>
+              <option value="demo">Forcer Démo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="split" style="margin-top:10px">
+          <div>
+            <div class="row">
+              <div class="field tiny">
+                <label for="lat">Latitude</label>
+                <input id="lat" type="number" step="0.000001" />
+              </div>
+              <div class="field tiny">
+                <label for="lon">Longitude</label>
+                <input id="lon" type="number" step="0.000001" />
+              </div>
+              <div class="field tiny">
+                <label for="tz">Fuseau</label>
+                <select id="tz">
+                  <option value="Europe/Brussels" selected>Europe/Brussels</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="btns" style="margin-top:10px">
+              <button class="primary" id="btnLoad">Charger les marées</button>
+              <button id="btnSave">Enregistrer réglages</button>
+              <button id="btnCSV">Exporter CSV</button>
+              <button id="btnClear">Effacer données</button>
+            </div>
+
+            <div class="status" id="statusLine"></div>
+
+            <div class="hr"></div>
+
+            <div class="kpi">
+              <div class="k">
+                <div class="t">Prochaine marée</div>
+                <div class="v mono" id="kNext">—</div>
+              </div>
+              <div class="k">
+                <div class="t">Après</div>
+                <div class="v mono" id="kAfter">—</div>
+              </div>
+              <div class="k">
+                <div class="t">Spot</div>
+                <div class="v" id="kSpot">—</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div>
+            <div class="warnbox">
+              <b>Remarque importante</b><br/>
+              Les “marées” peuvent être fournies sous forme de tables par des organismes officiels (ex. Vlaamse Hydrografie),
+              mais une API publique JSON n’est pas toujours disponible.  [oai_citation:3‡agentschapmdk.be](https://www.agentschapmdk.be/en/flemish-hydrography?utm_source=chatgpt.com)
+              <br/><br/>
+              Cette appli fonctionne :
+              <ul style="margin:6px 0 0 18px; padding:0">
+                <li><b>avec clé WorldTides</b> (recommandé),</li>
+                <li><b>sans clé</b> (mode démo), pour tester l’interface.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RIGHT: chart -->
+    <section class="card">
+      <div class="hd">
+        <h2>Courbe (24h)</h2>
+        <div class="mini">approx. via interpolation</div>
+      </div>
+      <div class="bd">
+        <canvas id="chart" width="1000" height="360"></canvas>
+        <div class="hint">
+          Le graphique est une visualisation simple : il interpole entre marées hautes/basses autour d’une journée.
+          Pour un usage nautique professionnel, réfère-toi aux publications/avis officiels.
+        </div>
+      </div>
+    </section>
+
+    <!-- FULL WIDTH: table -->
+    <section class="card" style="grid-column:1/-1">
+      <div class="hd">
+        <h2>Table des marées</h2>
+        <div class="row" style="gap:8px; align-items:center">
+          <div class="field" style="min-width:220px">
+            <label for="q">Filtre</label>
+            <input id="q" type="text" placeholder="ex : high / low / 03:30 / 02/02/2026" />
+          </div>
+          <button id="btnToday">Aller à aujourd’hui</button>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Heure</th>
+                <th>Type</th>
+                <th>Hauteur</th>
+                <th>Détails</th>
+              </tr>
+            </thead>
+            <tbody id="tb"></tbody>
+          </table>
+        </div>
+        <div class="hint" id="countLabel">—</div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  Marées Belgique • v1.0 • © Pierre Charlier 2026
+</footer>
+
+<script>
+/* ==========================
+   DATA: spots Belgique
+   ========================== */
+const SPOTS = [
+  // Côte
+  {name:"La Panne",        lat:51.1020, lon:2.5840},
+  {name:"Koksijde",        lat:51.1167, lon:2.6500},
+  {name:"Nieuwpoort",      lat:51.1300, lon:2.7500},
+  {name:"Oostende",        lat:51.2300, lon:2.9200},
+  {name:"Blankenberge",    lat:51.3130, lon:3.1330},
+  {name:"Zeebrugge",       lat:51.3310, lon:3.2070},
+  {name:"Knokke-Heist",    lat:51.3500, lon:3.2890},
+  // Estuaire (option)
+  {name:"Antwerpen (Escaut)", lat:51.2194, lon:4.4025},
+  {name:"📍 Personnalisé",  lat:null, lon:null, custom:true},
+];
+
+const els = {
+  spot: document.getElementById('spot'),
+  days: document.getElementById('days'),
+  date0: document.getElementById('date0'),
+  apiKey: document.getElementById('apiKey'),
+  mode: document.getElementById('mode'),
+  lat: document.getElementById('lat'),
+  lon: document.getElementById('lon'),
+  tz: document.getElementById('tz'),
+  btnLoad: document.getElementById('btnLoad'),
+  btnSave: document.getElementById('btnSave'),
+  btnCSV: document.getElementById('btnCSV'),
+  btnClear: document.getElementById('btnClear'),
+  statusLine: document.getElementById('statusLine'),
+  tb: document.getElementById('tb'),
+  q: document.getElementById('q'),
+  countLabel: document.getElementById('countLabel'),
+  nowLabel: document.getElementById('nowLabel'),
+  kNext: document.getElementById('kNext'),
+  kAfter: document.getElementById('kAfter'),
+  kSpot: document.getElementById('kSpot'),
+  chart: document.getElementById('chart'),
+  btnToday: document.getElementById('btnToday')
+};
+
+let tideEvents = []; // {ts, type, height, meta}
+
+/* ==========================
+   Utils
+   ========================== */
+function pad2(n){ return String(n).padStart(2,'0'); }
+
+function formatDateFR(ts, tz="Europe/Brussels"){
+  const d = new Date(ts*1000);
+  // format fr: dd/mm/yyyy
+  const parts = new Intl.DateTimeFormat('fr-BE', { timeZone: tz, day:'2-digit', month:'2-digit', year:'numeric' }).formatToParts(d);
+  const dd = parts.find(p=>p.type==='day').value;
+  const mm = parts.find(p=>p.type==='month').value;
+  const yy = parts.find(p=>p.type==='year').value;
+  return `${dd}/${mm}/${yy}`;
+}
+function formatTime(ts, tz="Europe/Brussels"){
+  const d = new Date(ts*1000);
+  const parts = new Intl.DateTimeFormat('fr-BE', { timeZone: tz, hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(d);
+  const hh = parts.find(p=>p.type==='hour').value;
+  const mi = parts.find(p=>p.type==='minute').value;
+  return `${hh}:${mi}`;
+}
+function formatDT(ts, tz){
+  return `${formatDateFR(ts,tz)} ${formatTime(ts,tz)}`;
+}
+function setStatus(items){
+  els.statusLine.innerHTML = '';
+  items.forEach(it=>{
+    const b = document.createElement('div');
+    b.className='badge';
+    const dot = document.createElement('span');
+    dot.className = 'dot ' + (it.level || 'warn');
+    const t = document.createElement('span');
+    t.textContent = it.text;
+    b.appendChild(dot); b.appendChild(t);
+    els.statusLine.appendChild(b);
+  });
+}
+
+function downloadText(filename, text){
+  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function toISODateLocal(d){
+  // input Date, output yyyy-mm-dd
+  const y = d.getFullYear();
+  const m = pad2(d.getMonth()+1);
+  const day = pad2(d.getDate());
+  return `${y}-${m}-${day}`;
+}
+
+function nowTS(){ return Math.floor(Date.now()/1000); }
+
+/* ==========================
+   Demo generator (offline)
+   ========================== */
+function demoData(startDate, days){
+  // Petit générateur "plausible" : 4 événements/jour, hauteur variant selon un sinus + bruit.
+  const tz = els.tz.value;
+  const base = new Date(startDate + "T00:00:00");
+  const out = [];
+  let phase = Math.random()*Math.PI*2;
+  for(let d=0; d<days; d++){
+    const day0 = new Date(base.getTime() + d*86400000);
+    const dayStart = Math.floor(day0.getTime()/1000);
+    // heures approx (deux hautes, deux basses)
+    const times = [ 2*3600, 8*3600, 14*3600, 20*3600 ].map((t,i)=>dayStart + t + Math.floor((Math.random()*30-15)*60));
+    const heights = times.map((_,i)=>{
+      const s = Math.sin(phase + (d*0.9) + i*1.2);
+      const h = 2.6 + 1.8*s + (Math.random()*0.15 - 0.075);
+      return Math.max(0.2, Math.round(h*100)/100);
+    });
+    // alterne high/low
+    const types = ["HIGH","LOW","HIGH","LOW"];
+    for(let i=0;i<4;i++){
+      out.push({
+        ts: times[i],
+        type: types[i],
+        height: heights[i],
+        meta: {source:"demo"}
+      });
+    }
+  }
+  out.sort((a,b)=>a.ts-b.ts);
+  // normalise alternance: si 1er est low, on inverse labels pour garder logique
+  // (juste cosmétique)
+  return out;
+}
+
+/* ==========================
+   WorldTides fetch
+   Docs: https://www.worldtides.info/apidocs
+   ========================== */
+async function fetchWorldTides(lat, lon, startTs, days, key){
+  const endTs = startTs + days*86400;
+  // On récupère les événements hauts/bas ("extremes")
+  const url = new URL("https://www.worldtides.info/api/v3");
+  url.searchParams.set("heights", "");           // include heights
+  url.searchParams.set("extremes", "");          // high/low events
+  url.searchParams.set("lat", lat);
+  url.searchParams.set("lon", lon);
+  url.searchParams.set("start", startTs);
+  url.searchParams.set("end", endTs);
+  url.searchParams.set("key", key);
+
+  const r = await fetch(url.toString(), {method:"GET"});
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  const j = await r.json();
+  // Format attendu: j.extremes = [{dt, type, height, ...}]
+  if(!j || !j.extremes) throw new Error("Réponse API inattendue (pas d'extremes).");
+  const ev = j.extremes.map(x=>({
+    ts: Number(x.dt),
+    type: String(x.type || "").toUpperCase(), // "High"/"Low"
+    height: (x.height!=null) ? Number(x.height) : null,
+    meta: {source:"worldtides"}
+  })).filter(x=>Number.isFinite(x.ts));
+
+  ev.sort((a,b)=>a.ts-b.ts);
+  return ev;
+}
+
+/* ==========================
+   Rendering
+   ========================== */
+function renderTable(){
+  const tz = els.tz.value;
+  const query = (els.q.value || "").trim().toLowerCase();
+  els.tb.innerHTML = "";
+
+  const filtered = tideEvents.filter(ev=>{
+    if(!query) return true;
+    const date = formatDateFR(ev.ts, tz).toLowerCase();
+    const time = formatTime(ev.ts, tz).toLowerCase();
+    const type = (ev.type || "").toLowerCase();
+    const h = (ev.height==null ? "" : (""+ev.height)).toLowerCase();
+    return (date.includes(query) || time.includes(query) || type.includes(query) || h.includes(query));
+  });
+
+  filtered.forEach(ev=>{
+    const tr = document.createElement('tr');
+    const tdDate = document.createElement('td');
+    const tdTime = document.createElement('td');
+    const tdType = document.createElement('td');
+    const tdHeight = document.createElement('td');
+    const tdMeta = document.createElement('td');
+
+    tdDate.textContent = formatDateFR(ev.ts, tz);
+    tdTime.textContent = formatTime(ev.ts, tz);
+    tdTime.className = "mono";
+
+    const t = (ev.type || "").toUpperCase().includes("HIGH") ? "HIGH" : "LOW";
+    const sp = document.createElement('span');
+    sp.className = "type " + (t==="HIGH" ? "high":"low");
+    sp.textContent = (t==="HIGH" ? "Marée haute" : "Marée basse");
+    tdType.appendChild(sp);
+
+    tdHeight.textContent = (ev.height==null ? "—" : `${ev.height.toFixed(2)} m`);
+    tdHeight.className="mono";
+
+    const src = ev.meta?.source || "—";
+    tdMeta.textContent = (src==="worldtides" ? "API" : "Démo");
+
+    tr.appendChild(tdDate);
+    tr.appendChild(tdTime);
+    tr.appendChild(tdType);
+    tr.appendChild(tdHeight);
+    tr.appendChild(tdMeta);
+    els.tb.appendChild(tr);
+  });
+
+  els.countLabel.textContent = `${filtered.length} événement(s) affiché(s) • ${tideEvents.length} total`;
+}
+
+function computeNext(){
+  const tz = els.tz.value;
+  const now = nowTS();
+  const upcoming = tideEvents.filter(e=>e.ts>=now).slice(0,2);
+  if(upcoming.length===0){
+    els.kNext.textContent = "—";
+    els.kAfter.textContent = "—";
+    return;
+  }
+  const fmt = (ev)=>{
+    const t = (ev.type || "").toUpperCase().includes("HIGH") ? "H" : "B";
+    const h = (ev.height==null) ? "" : ` • ${ev.height.toFixed(2)} m`;
+    return `${t} • ${formatDT(ev.ts, tz)}${h}`;
+  };
+  els.kNext.textContent = fmt(upcoming[0]);
+  els.kAfter.textContent = (upcoming[1] ? fmt(upcoming[1]) : "—");
+}
+
+function drawChart(){
+  const ctx = els.chart.getContext('2d');
+  const w = els.chart.width, h = els.chart.height;
+  ctx.clearRect(0,0,w,h);
+
+  // Cadre
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = "#dde3ea";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(10,10,w-20,h-20);
+
+  if(tideEvents.length < 4){
+    ctx.fillStyle="#5b6775";
+    ctx.font="16px " + getComputedStyle(document.body).fontFamily;
+    ctx.fillText("Pas assez de données pour tracer.", 30, 60);
+    return;
+  }
+
+  // On trace une journée autour de "aujourd'hui" (fuseau)
+  const tz = els.tz.value;
+  const now = new Date();
+  // minuit local approx en UTC: on prend date ISO locale du navigateur
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+  const startTs = Math.floor(dayStart.getTime()/1000);
+  const endTs = startTs + 86400;
+
+  // Prend événements +- 24h pour interpoler
+  const windowEv = tideEvents.filter(e=>e.ts>=startTs-86400 && e.ts<=endTs+86400 && e.height!=null);
+  if(windowEv.length < 4){
+    ctx.fillStyle="#5b6775";
+    ctx.font="16px " + getComputedStyle(document.body).fontFamily;
+    ctx.fillText("Hauteurs manquantes (—) : graphique limité.", 30, 60);
+  }
+
+  // Construire points d'interpolation (ts, height)
+  const pts = windowEv
+    .filter(e=>e.height!=null)
+    .sort((a,b)=>a.ts-b.ts)
+    .map(e=>({x:e.ts, y:e.height}));
+
+  // échantillonnage toutes les 10 min
+  const step = 600;
+  const samples = [];
+  for(let t=startTs; t<=endTs; t+=step){
+    const y = interpLinear(pts, t);
+    if(y!=null) samples.push({t, y});
+  }
+
+  if(samples.length < 10){
+    ctx.fillStyle="#5b6775";
+    ctx.font="16px " + getComputedStyle(document.body).fontFamily;
+    ctx.fillText("Graphique indisponible (échantillons insuffisants).", 30, 60);
+    return;
+  }
+
+  const yMin = Math.min(...samples.map(s=>s.y));
+  const yMax = Math.max(...samples.map(s=>s.y));
+  const padY = Math.max(0.2, (yMax-yMin)*0.12);
+  const ymin = yMin - padY;
+  const ymax = yMax + padY;
+
+  // Axes
+  const L=50, R=30, T=30, B=45;
+  const pw = w - L - R;
+  const ph = h - T - B;
+
+  ctx.strokeStyle="#dde3ea";
+  ctx.lineWidth=1;
+
+  // lignes horizontales (4)
+  for(let i=0;i<=4;i++){
+    const yy = T + (ph*i/4);
+    ctx.beginPath(); ctx.moveTo(L, yy); ctx.lineTo(L+pw, yy); ctx.stroke();
+    const val = (ymax - (ymax-ymin)*(i/4));
+    ctx.fillStyle="#5b6775";
+    ctx.font="12px " + getComputedStyle(document.body).fontFamily;
+    ctx.fillText(val.toFixed(2)+" m", 14, yy+4);
+  }
+
+  // lignes verticales (toutes les 6h)
+  for(let i=0;i<=4;i++){
+    const xx = L + (pw*i/4);
+    ctx.beginPath(); ctx.moveTo(xx, T); ctx.lineTo(xx, T+ph); ctx.stroke();
+    const hour = i*6;
+    ctx.fillStyle="#5b6775";
+    ctx.font="12px " + getComputedStyle(document.body).fontFamily;
+    ctx.fillText(pad2(hour)+":00", xx-16, T+ph+28);
+  }
+
+  // Courbe
+  ctx.strokeStyle="#1f6feb";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  samples.forEach((s,idx)=>{
+    const x = L + ((s.t - startTs)/86400)*pw;
+    const y = T + (1 - (s.y - ymin)/(ymax-ymin))*ph;
+    if(idx===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // Marqueurs des extremes du jour
+  const dayEv = tideEvents.filter(e=>e.ts>=startTs && e.ts<=endTs && e.height!=null);
+  dayEv.forEach(e=>{
+    const x = L + ((e.ts - startTs)/86400)*pw;
+    const y = T + (1 - (e.height - ymin)/(ymax-ymin))*ph;
+    ctx.fillStyle = (String(e.type).toUpperCase().includes("HIGH")) ? "#0a7a2f" : "#b42318";
+    ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
+  });
+
+  // Titre
+  ctx.fillStyle="#1b1f24";
+  ctx.font="16px " + getComputedStyle(document.body).fontFamily;
+  ctx.fillText("Aujourd’hui (approx.)", L, 22);
+
+  // Légende
+  ctx.fillStyle="#5b6775";
+  ctx.font="12px " + getComputedStyle(document.body).fontFamily;
+  ctx.fillText("• points = marées hautes/basses • courbe = interpolation", L, h-12);
+}
+
+function interpLinear(pts, x){
+  if(!pts || pts.length<2) return null;
+  // trouver segment
+  let i=0;
+  while(i<pts.length && pts[i].x < x) i++;
+  if(i===0) return pts[0].y;
+  if(i>=pts.length) return pts[pts.length-1].y;
+  const a = pts[i-1], b = pts[i];
+  const t = (x - a.x) / (b.x - a.x);
+  return a.y + (b.y - a.y)*t;
+}
+
+/* ==========================
+   Load / Save
+   ========================== */
+function fillSpots(){
+  els.spot.innerHTML = "";
+  SPOTS.forEach((s, idx)=>{
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = s.name;
+    els.spot.appendChild(opt);
+  });
+}
+
+function applySpot(idx){
+  const s = SPOTS[idx];
+  els.kSpot.textContent = s.name;
+  if(s.custom){
+    // ne touche pas aux champs
+    return;
+  }
+  els.lat.value = s.lat;
+  els.lon.value = s.lon;
+}
+
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem("marees_be_settings_v1");
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(s.spotIdx!=null) els.spot.value = String(s.spotIdx);
+    if(s.days!=null) els.days.value = String(s.days);
+    if(s.date0) els.date0.value = s.date0;
+    if(s.apiKey!=null) els.apiKey.value = s.apiKey;
+    if(s.mode) els.mode.value = s.mode;
+    if(s.lat!=null) els.lat.value = s.lat;
+    if(s.lon!=null) els.lon.value = s.lon;
+    if(s.tz) els.tz.value = s.tz;
+  }catch(e){}
+}
+
+function saveSettings(){
+  const s = {
+    spotIdx: Number(els.spot.value),
+    days: Number(els.days.value),
+    date0: els.date0.value,
+    apiKey: els.apiKey.value.trim(),
+    mode: els.mode.value,
+    lat: els.lat.value,
+    lon: els.lon.value,
+    tz: els.tz.value
+  };
+  localStorage.setItem("marees_be_settings_v1", JSON.stringify(s));
+  setStatus([{level:"ok", text:"Réglages enregistrés"}]);
+}
+
+function clearData(){
+  tideEvents = [];
+  renderTable();
+  computeNext();
+  drawChart();
+  setStatus([{level:"warn", text:"Données effacées"}]);
+}
+
+/* ==========================
+   Main load
+   ========================== */
+async function loadTides(){
+  const tz = els.tz.value;
+
+  const idx = Number(els.spot.value);
+  const spot = SPOTS[idx];
+  const lat = Number(els.lat.value);
+  const lon = Number(els.lon.value);
+
+  if(!Number.isFinite(lat) || !Number.isFinite(lon)){
+    setStatus([{level:"bad", text:"Latitude/Longitude invalides"}]);
+    return;
+  }
+
+  const days = Number(els.days.value) || 3;
+  const date0 = els.date0.value || toISODateLocal(new Date());
+  const startTs = Math.floor(new Date(date0 + "T00:00:00").getTime()/1000);
+
+  const key = els.apiKey.value.trim();
+  const mode = els.mode.value;
+
+  els.kSpot.textContent = spot.name;
+
+  setStatus([{level:"warn", text:"Chargement…"}]);
+
+  let used = "demo";
+  let ev = [];
+  try{
+    const shouldUseApi = (mode==="api") || (mode==="auto" && key.length>0);
+    if(shouldUseApi){
+      used = "api";
+      ev = await fetchWorldTides(lat, lon, startTs, days, key);
+      // normaliser types
+      ev = ev.map(x=>{
+        const up = (x.type||"").toUpperCase();
+        const type = up.includes("HIGH") ? "HIGH" : "LOW";
+        return {...x, type};
+      });
+      if(ev.length === 0) throw new Error("Aucun événement renvoyé.");
+      setStatus([
+        {level:"ok", text:`OK • ${ev.length} événements (API)`},
+        {level:"ok", text:`Spot: ${spot.name}`},
+        {level:"ok", text:`Fuseau: ${tz}`}
+      ]);
+    }else{
+      used = "demo";
+      ev = demoData(date0, days);
+      setStatus([
+        {level:"warn", text:`Mode démo • ${ev.length} événements`},
+        {level:"warn", text:`Ajoute une clé API pour des vraies marées.`}
+      ]);
+    }
+  }catch(err){
+    // fallback démo si auto
+    if(mode==="auto"){
+      used="demo";
+      ev = demoData(date0, days);
+      setStatus([
+        {level:"warn", text:`API indisponible → bascule en démo`},
+        {level:"warn", text:String(err.message || err)}
+      ]);
+    }else{
+      setStatus([{level:"bad", text:`Erreur: ${String(err.message || err)}`}]);
+      return;
+    }
+  }
+
+  tideEvents = ev.map(e=>({...e, meta:{...(e.meta||{}), used}}));
+  tideEvents.sort((a,b)=>a.ts-b.ts);
+
+  renderTable();
+  computeNext();
+  drawChart();
+}
+
+function exportCSV(){
+  if(!tideEvents.length){
+    setStatus([{level:"warn", text:"Aucune donnée à exporter"}]);
+    return;
+  }
+  const tz = els.tz.value;
+  const lines = [
+    ["date","heure","type","hauteur_m","source"].join(";")
+  ];
+  tideEvents.forEach(e=>{
+    const t = (String(e.type).toUpperCase().includes("HIGH")) ? "haute" : "basse";
+    const h = (e.height==null) ? "" : e.height.toFixed(2);
+    const src = e.meta?.source || e.meta?.used || "";
+    lines.push([formatDateFR(e.ts,tz), formatTime(e.ts,tz), t, h, src].join(";"));
+  });
+  downloadText("marees-belgique.csv", lines.join("\n"));
+  setStatus([{level:"ok", text:"CSV exporté"}]);
+}
+
+function scrollToToday(){
+  // simple: on met un filtre sur la date du jour, puis on l'enlève après
+  const tz = els.tz.value;
+  const today = formatDateFR(nowTS(), tz);
+  els.q.value = today;
+  renderTable();
+  // scroll top
+  const wrap = document.querySelector('.tablewrap');
+  wrap.scrollTop = 0;
+}
+
+/* ==========================
+   Init
+   ========================== */
+(function init(){
+  fillSpots();
+
+  // date par défaut = aujourd'hui
+  els.date0.value = toISODateLocal(new Date());
+
+  // "maintenant"
+  setInterval(()=>{
+    const tz = els.tz.value;
+    const n = nowTS();
+    els.nowLabel.textContent = `Maintenant : ${formatDT(n, tz)}`;
+    computeNext();
+  }, 1000);
+
+  // settings
+  loadSettings();
+
+  // appliquer spot
+  applySpot(Number(els.spot.value || 0));
+
+  // events
+  els.spot.addEventListener('change', ()=>{
+    applySpot(Number(els.spot.value));
+  });
+
+  els.btnLoad.addEventListener('click', loadTides);
+  els.btnSave.addEventListener('click', saveSettings);
+  els.btnCSV.addEventListener('click', exportCSV);
+  els.btnClear.addEventListener('click', clearData);
+  els.q.addEventListener('input', renderTable);
+  els.tz.addEventListener('change', ()=>{
+    renderTable();
+    computeNext();
+    drawChart();
+  });
+  els.btnToday.addEventListener('click', scrollToToday);
+
+  // petite démo immédiate
+  loadTides();
+})();
+</script>
+</body>
+</html>
