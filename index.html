@@ -6,7 +6,11 @@
   <title>Marées Belgique</title>
   <style>
     :root{
-      --bg:#f2f0ea;
+      /* ✅ Fond sable (plus foncé) */
+      --bg:#e7d7b6;          /* sable */
+      --bg2:#f1e3c6;         /* sable clair pour le dégradé */
+      --header: rgba(231,215,182,.92);
+
       --card:#ffffff;
       --ink:#1b1f24;
       --muted:#5b6775;
@@ -23,12 +27,12 @@
     body{
       margin:0;
       font-family:var(--font);
-      background:linear-gradient(180deg, var(--bg), #f7f6f2 50%, var(--bg));
+      background:linear-gradient(180deg, var(--bg), var(--bg2) 50%, var(--bg));
       color:var(--ink);
     }
     header{
       position:sticky; top:0; z-index:10;
-      background:rgba(242,240,234,.88);
+      background:var(--header);
       backdrop-filter: blur(8px);
       border-bottom:1px solid var(--line);
     }
@@ -255,7 +259,7 @@
             <label for="apiKey">Clé API (WorldTides) — optionnel</label>
             <input id="apiKey" type="text" placeholder="Colle ta clé ici (sinon mode démo)" />
             <div class="hint">
-              L’API WorldTides fournit des marées partout dans le monde via requêtes HTTP.  [oai_citation:2‡worldtides.info](https://www.worldtides.info/apidocs?utm_source=chatgpt.com)
+              L’API WorldTides fournit des marées partout dans le monde via requêtes HTTP.
             </div>
           </div>
           <div class="field tiny">
@@ -320,7 +324,7 @@
             <div class="warnbox">
               <b>Remarque importante</b><br/>
               Les “marées” peuvent être fournies sous forme de tables par des organismes officiels (ex. Vlaamse Hydrografie),
-              mais une API publique JSON n’est pas toujours disponible.  [oai_citation:3‡agentschapmdk.be](https://www.agentschapmdk.be/en/flemish-hydrography?utm_source=chatgpt.com)
+              mais une API publique JSON n’est pas toujours disponible.
               <br/><br/>
               Cette appli fonctionne :
               <ul style="margin:6px 0 0 18px; padding:0">
@@ -496,7 +500,6 @@ function nowTS(){ return Math.floor(Date.now()/1000); }
    ========================== */
 function demoData(startDate, days){
   // Petit générateur "plausible" : 4 événements/jour, hauteur variant selon un sinus + bruit.
-  const tz = els.tz.value;
   const base = new Date(startDate + "T00:00:00");
   const out = [];
   let phase = Math.random()*Math.PI*2;
@@ -504,39 +507,29 @@ function demoData(startDate, days){
     const day0 = new Date(base.getTime() + d*86400000);
     const dayStart = Math.floor(day0.getTime()/1000);
     // heures approx (deux hautes, deux basses)
-    const times = [ 2*3600, 8*3600, 14*3600, 20*3600 ].map((t,i)=>dayStart + t + Math.floor((Math.random()*30-15)*60));
+    const times = [ 2*3600, 8*3600, 14*3600, 20*3600 ].map((t)=>dayStart + t + Math.floor((Math.random()*30-15)*60));
     const heights = times.map((_,i)=>{
       const s = Math.sin(phase + (d*0.9) + i*1.2);
       const h = 2.6 + 1.8*s + (Math.random()*0.15 - 0.075);
       return Math.max(0.2, Math.round(h*100)/100);
     });
-    // alterne high/low
     const types = ["HIGH","LOW","HIGH","LOW"];
     for(let i=0;i<4;i++){
-      out.push({
-        ts: times[i],
-        type: types[i],
-        height: heights[i],
-        meta: {source:"demo"}
-      });
+      out.push({ ts: times[i], type: types[i], height: heights[i], meta: {source:"demo"} });
     }
   }
   out.sort((a,b)=>a.ts-b.ts);
-  // normalise alternance: si 1er est low, on inverse labels pour garder logique
-  // (juste cosmétique)
   return out;
 }
 
 /* ==========================
    WorldTides fetch
-   Docs: https://www.worldtides.info/apidocs
    ========================== */
 async function fetchWorldTides(lat, lon, startTs, days, key){
   const endTs = startTs + days*86400;
-  // On récupère les événements hauts/bas ("extremes")
   const url = new URL("https://www.worldtides.info/api/v3");
-  url.searchParams.set("heights", "");           // include heights
-  url.searchParams.set("extremes", "");          // high/low events
+  url.searchParams.set("heights", "");
+  url.searchParams.set("extremes", "");
   url.searchParams.set("lat", lat);
   url.searchParams.set("lon", lon);
   url.searchParams.set("start", startTs);
@@ -546,11 +539,11 @@ async function fetchWorldTides(lat, lon, startTs, days, key){
   const r = await fetch(url.toString(), {method:"GET"});
   if(!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
-  // Format attendu: j.extremes = [{dt, type, height, ...}]
   if(!j || !j.extremes) throw new Error("Réponse API inattendue (pas d'extremes).");
+
   const ev = j.extremes.map(x=>({
     ts: Number(x.dt),
-    type: String(x.type || "").toUpperCase(), // "High"/"Low"
+    type: String(x.type || "").toUpperCase(),
     height: (x.height!=null) ? Number(x.height) : null,
     meta: {source:"worldtides"}
   })).filter(x=>Number.isFinite(x.ts));
@@ -634,7 +627,6 @@ function drawChart(){
   const w = els.chart.width, h = els.chart.height;
   ctx.clearRect(0,0,w,h);
 
-  // Cadre
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0,0,w,h);
   ctx.strokeStyle = "#dde3ea";
@@ -648,29 +640,18 @@ function drawChart(){
     return;
   }
 
-  // On trace une journée autour de "aujourd'hui" (fuseau)
-  const tz = els.tz.value;
   const now = new Date();
-  // minuit local approx en UTC: on prend date ISO locale du navigateur
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
   const startTs = Math.floor(dayStart.getTime()/1000);
   const endTs = startTs + 86400;
 
-  // Prend événements +- 24h pour interpoler
   const windowEv = tideEvents.filter(e=>e.ts>=startTs-86400 && e.ts<=endTs+86400 && e.height!=null);
-  if(windowEv.length < 4){
-    ctx.fillStyle="#5b6775";
-    ctx.font="16px " + getComputedStyle(document.body).fontFamily;
-    ctx.fillText("Hauteurs manquantes (—) : graphique limité.", 30, 60);
-  }
 
-  // Construire points d'interpolation (ts, height)
   const pts = windowEv
     .filter(e=>e.height!=null)
     .sort((a,b)=>a.ts-b.ts)
     .map(e=>({x:e.ts, y:e.height}));
 
-  // échantillonnage toutes les 10 min
   const step = 600;
   const samples = [];
   for(let t=startTs; t<=endTs; t+=step){
@@ -691,7 +672,6 @@ function drawChart(){
   const ymin = yMin - padY;
   const ymax = yMax + padY;
 
-  // Axes
   const L=50, R=30, T=30, B=45;
   const pw = w - L - R;
   const ph = h - T - B;
@@ -699,7 +679,6 @@ function drawChart(){
   ctx.strokeStyle="#dde3ea";
   ctx.lineWidth=1;
 
-  // lignes horizontales (4)
   for(let i=0;i<=4;i++){
     const yy = T + (ph*i/4);
     ctx.beginPath(); ctx.moveTo(L, yy); ctx.lineTo(L+pw, yy); ctx.stroke();
@@ -709,17 +688,15 @@ function drawChart(){
     ctx.fillText(val.toFixed(2)+" m", 14, yy+4);
   }
 
-  // lignes verticales (toutes les 6h)
   for(let i=0;i<=4;i++){
     const xx = L + (pw*i/4);
     ctx.beginPath(); ctx.moveTo(xx, T); ctx.lineTo(xx, T+ph); ctx.stroke();
     const hour = i*6;
     ctx.fillStyle="#5b6775";
     ctx.font="12px " + getComputedStyle(document.body).fontFamily;
-    ctx.fillText(pad2(hour)+":00", xx-16, T+ph+28);
+    ctx.fillText(String(hour).padStart(2,'0')+":00", xx-16, T+ph+28);
   }
 
-  // Courbe
   ctx.strokeStyle="#1f6feb";
   ctx.lineWidth=2;
   ctx.beginPath();
@@ -731,7 +708,6 @@ function drawChart(){
   });
   ctx.stroke();
 
-  // Marqueurs des extremes du jour
   const dayEv = tideEvents.filter(e=>e.ts>=startTs && e.ts<=endTs && e.height!=null);
   dayEv.forEach(e=>{
     const x = L + ((e.ts - startTs)/86400)*pw;
@@ -740,12 +716,10 @@ function drawChart(){
     ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
   });
 
-  // Titre
   ctx.fillStyle="#1b1f24";
   ctx.font="16px " + getComputedStyle(document.body).fontFamily;
   ctx.fillText("Aujourd’hui (approx.)", L, 22);
 
-  // Légende
   ctx.fillStyle="#5b6775";
   ctx.font="12px " + getComputedStyle(document.body).fontFamily;
   ctx.fillText("• points = marées hautes/basses • courbe = interpolation", L, h-12);
@@ -753,7 +727,6 @@ function drawChart(){
 
 function interpLinear(pts, x){
   if(!pts || pts.length<2) return null;
-  // trouver segment
   let i=0;
   while(i<pts.length && pts[i].x < x) i++;
   if(i===0) return pts[0].y;
@@ -779,10 +752,7 @@ function fillSpots(){
 function applySpot(idx){
   const s = SPOTS[idx];
   els.kSpot.textContent = s.name;
-  if(s.custom){
-    // ne touche pas aux champs
-    return;
-  }
+  if(s.custom) return;
   els.lat.value = s.lat;
   els.lon.value = s.lon;
 }
@@ -860,7 +830,6 @@ async function loadTides(){
     if(shouldUseApi){
       used = "api";
       ev = await fetchWorldTides(lat, lon, startTs, days, key);
-      // normaliser types
       ev = ev.map(x=>{
         const up = (x.type||"").toUpperCase();
         const type = up.includes("HIGH") ? "HIGH" : "LOW";
@@ -881,7 +850,6 @@ async function loadTides(){
       ]);
     }
   }catch(err){
-    // fallback démo si auto
     if(mode==="auto"){
       used="demo";
       ev = demoData(date0, days);
@@ -923,12 +891,10 @@ function exportCSV(){
 }
 
 function scrollToToday(){
-  // simple: on met un filtre sur la date du jour, puis on l'enlève après
   const tz = els.tz.value;
   const today = formatDateFR(nowTS(), tz);
   els.q.value = today;
   renderTable();
-  // scroll top
   const wrap = document.querySelector('.tablewrap');
   wrap.scrollTop = 0;
 }
@@ -938,11 +904,8 @@ function scrollToToday(){
    ========================== */
 (function init(){
   fillSpots();
-
-  // date par défaut = aujourd'hui
   els.date0.value = toISODateLocal(new Date());
 
-  // "maintenant"
   setInterval(()=>{
     const tz = els.tz.value;
     const n = nowTS();
@@ -950,17 +913,10 @@ function scrollToToday(){
     computeNext();
   }, 1000);
 
-  // settings
   loadSettings();
-
-  // appliquer spot
   applySpot(Number(els.spot.value || 0));
 
-  // events
-  els.spot.addEventListener('change', ()=>{
-    applySpot(Number(els.spot.value));
-  });
-
+  els.spot.addEventListener('change', ()=> applySpot(Number(els.spot.value)));
   els.btnLoad.addEventListener('click', loadTides);
   els.btnSave.addEventListener('click', saveSettings);
   els.btnCSV.addEventListener('click', exportCSV);
@@ -973,7 +929,6 @@ function scrollToToday(){
   });
   els.btnToday.addEventListener('click', scrollToToday);
 
-  // petite démo immédiate
   loadTides();
 })();
 </script>
